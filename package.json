@@ -1,0 +1,30 @@
+{
+  "name": "ai-prompt-helper",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:seed": "node scripts/seed.mjs",
+    "db:reset": "rm -f data/prompts.db data/prompts.db-shm data/prompts.db-wal && node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "fuse.js": "^7.3.0",
+    "next": "16.2.6",
+    "pinyin-pro": "^3.28.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
