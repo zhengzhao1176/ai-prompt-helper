@@ -41,8 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# sqlite database
-/data/*.db
+# sqlite database —— prompts.db 按要求入库；下面两个是临时文件，不入库
 /data/*.db-shm
 /data/*.db-wal
 
