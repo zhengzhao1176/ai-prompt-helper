@@ -50,3 +50,6 @@ next-env.d.ts
 
 # 备份文件（不入库）
 *.bak
+
+# 含密钥的本地部署脚本（不入库）
+deploy-to-vercel.sh
