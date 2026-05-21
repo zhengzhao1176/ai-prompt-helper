@@ -47,3 +47,6 @@ next-env.d.ts
 
 # claude code 本地设置（不入库）
 .claude/settings.local.json
+
+# 备份文件（不入库）
+*.bak
