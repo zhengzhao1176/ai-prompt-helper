@@ -23,9 +23,11 @@ function refresh() {
 
 // ---------------------------------------------------------------- prompts ---
 
-function validatePrompt(input: PromptInput): string | null {
+async function validatePrompt(input: PromptInput): Promise<string | null> {
   if (!input.title.trim()) return "请填写标题";
-  if (!categoryExists(input.category)) return "分类无效，请先在分类管理中创建";
+  if (!(await categoryExists(input.category))) {
+    return "分类无效，请先在分类管理中创建";
+  }
   if (input.keywords.length === 0) return "请至少添加一个查询词语";
   if (!input.prompt.trim()) return "请填写提示词内容";
   return null;
@@ -34,9 +36,9 @@ function validatePrompt(input: PromptInput): string | null {
 export async function createPromptAction(
   input: PromptInput,
 ): Promise<ActionResult> {
-  const error = validatePrompt(input);
+  const error = await validatePrompt(input);
   if (error) return { ok: false, error };
-  createPrompt(input);
+  await createPrompt(input);
   refresh();
   return { ok: true };
 }
@@ -45,9 +47,9 @@ export async function updatePromptAction(
   id: string,
   input: PromptInput,
 ): Promise<ActionResult> {
-  const error = validatePrompt(input);
+  const error = await validatePrompt(input);
   if (error) return { ok: false, error };
-  if (!updatePrompt(id, input)) {
+  if (!(await updatePrompt(id, input))) {
     return { ok: false, error: "没有找到要更新的提示词" };
   }
   refresh();
@@ -55,7 +57,7 @@ export async function updatePromptAction(
 }
 
 export async function deletePromptAction(id: string): Promise<ActionResult> {
-  if (!deletePrompt(id)) {
+  if (!(await deletePrompt(id))) {
     return { ok: false, error: "删除失败：提示词不存在" };
   }
   refresh();
@@ -67,7 +69,7 @@ export async function deletePromptAction(id: string): Promise<ActionResult> {
 export async function createCategoryAction(
   name: string,
 ): Promise<ActionResult> {
-  const result = createCategory(name);
+  const result = await createCategory(name);
   if (result.ok) refresh();
   return result;
 }
@@ -76,13 +78,13 @@ export async function renameCategoryAction(
   id: number,
   name: string,
 ): Promise<ActionResult> {
-  const result = renameCategory(id, name);
+  const result = await renameCategory(id, name);
   if (result.ok) refresh();
   return result;
 }
 
 export async function deleteCategoryAction(id: number): Promise<ActionResult> {
-  const result = deleteCategory(id);
+  const result = await deleteCategory(id);
   if (result.ok) refresh();
   return result;
 }

@@ -3,32 +3,35 @@ import { fetchCategories } from "@/lib/categories";
 import { fetchPrompts } from "@/lib/prompts";
 import type { Prompt } from "@/lib/search";
 
-// The word library lives in a local SQLite database — read it fresh on every
-// request so edits made in the admin page show up on the next load.
+// 词库存在数据库里（本地 SQLite / 线上 Turso）—— 每次请求都读最新。
 export const dynamic = "force-dynamic";
 
 type PageData = { prompts: Prompt[]; categories: string[] };
 
-function loadData(): PageData | null {
+async function loadData(): Promise<PageData | null> {
   try {
+    const [prompts, categories] = await Promise.all([
+      fetchPrompts(),
+      fetchCategories(),
+    ]);
     return {
-      prompts: fetchPrompts(),
-      categories: fetchCategories().map((category) => category.name),
+      prompts,
+      categories: categories.map((category) => category.name),
     };
   } catch (error) {
-    console.error("[prompt-helper] failed to read the SQLite database:", error);
+    console.error("[prompt-helper] failed to read the database:", error);
     return null;
   }
 }
 
-export default function Home() {
-  const data = loadData();
+export default async function Home() {
+  const data = await loadData();
 
   if (data === null) {
     return (
       <SetupNotice
         title="数据库读取失败"
-        message="无法读取本地 SQLite 数据库（data/prompts.db）。"
+        message="无法读取数据库（本地 SQLite 或 Turso），请检查连接配置。"
         steps={["npm run db:seed", "刷新本页面"]}
       />
     );
@@ -38,7 +41,7 @@ export default function Home() {
     return (
       <SetupNotice
         title="词库为空"
-        message="SQLite 数据库已就绪，但里面还没有提示词。"
+        message="数据库已就绪，但里面还没有提示词。"
         steps={["npm run db:seed", "刷新本页面"]}
       />
     );

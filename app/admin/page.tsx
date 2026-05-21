@@ -6,9 +6,11 @@ import { fetchPrompts } from "@/lib/prompts";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
-  const prompts = fetchPrompts();
-  const categories = fetchCategories();
+export default async function AdminPage() {
+  const [prompts, categories] = await Promise.all([
+    fetchPrompts(),
+    fetchCategories(),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">

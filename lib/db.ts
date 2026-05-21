@@ -1,15 +1,11 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
+import { createClient, type Client } from "@libsql/client";
 
-const dataDir = path.join(process.cwd(), "data");
-fs.mkdirSync(dataDir, { recursive: true });
-
-const DB_PATH = path.join(dataDir, "prompts.db");
-
-const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS prompts (
+// 每条 CREATE 单独执行（libsql 的 execute 一次只跑一条语句）。
+const SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS prompts (
     id          TEXT    PRIMARY KEY,
     title       TEXT    NOT NULL,
     category    TEXT    NOT NULL,
@@ -19,31 +15,49 @@ const SCHEMA = `
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS categories (
+  )`,
+  `CREATE TABLE IF NOT EXISTS categories (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT    NOT NULL UNIQUE,
     sort_order  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-`;
+  )`,
+];
+
+// 本地开发用本地 SQLite 文件；设置了 TURSO_DATABASE_URL 时（如 Vercel）走 Turso。
+function createDbClient(): Client {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  if (tursoUrl) {
+    return createClient({
+      url: tursoUrl,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  const dataDir = path.join(process.cwd(), "data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  return createClient({ url: `file:${path.join(dataDir, "prompts.db")}` });
+}
 
 declare global {
-  // Cached across dev hot-reloads so we don't reopen the database each time.
-  var __promptDb: Database.Database | undefined;
+  // 跨开发态热重载缓存，避免重复建连接 / 重复建表。
+  var __promptDb: Client | undefined;
+  var __promptSchema: Promise<void> | undefined;
 }
 
-function openDatabase(): Database.Database {
-  const database = new Database(DB_PATH);
-  database.pragma("journal_mode = WAL");
-  database.exec(SCHEMA);
-  return database;
-}
-
-export const db: Database.Database = globalThis.__promptDb ?? openDatabase();
-
+export const db: Client = globalThis.__promptDb ?? createDbClient();
 if (process.env.NODE_ENV !== "production") {
   globalThis.__promptDb = db;
+}
+
+// 首次访问数据库前确保表已存在（只执行一次，结果缓存）。
+export function ensureSchema(): Promise<void> {
+  if (!globalThis.__promptSchema) {
+    globalThis.__promptSchema = (async () => {
+      for (const statement of SCHEMA_STATEMENTS) {
+        await db.execute(statement);
+      }
+    })();
+  }
+  return globalThis.__promptSchema;
 }

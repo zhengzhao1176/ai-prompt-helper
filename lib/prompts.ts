@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { db } from "@/lib/db";
+import type { Row } from "@libsql/client";
+import { db, ensureSchema } from "@/lib/db";
 import type { Prompt } from "@/lib/search";
 
 // Shape submitted from the admin form.
@@ -12,87 +13,83 @@ export type PromptInput = {
   note: string;
 };
 
-interface PromptRow {
-  id: string;
-  title: string;
-  category: string;
-  keywords: string;
-  prompt: string;
-  note: string | null;
-}
-
-function rowToPrompt(row: PromptRow): Prompt {
+function rowToPrompt(row: Row): Prompt {
   let keywords: string[] = [];
   try {
-    const parsed = JSON.parse(row.keywords);
+    const parsed = JSON.parse(String(row.keywords ?? "[]"));
     if (Array.isArray(parsed)) keywords = parsed.map((item) => String(item));
   } catch {
     keywords = [];
   }
   return {
-    id: row.id,
-    title: row.title,
-    category: row.category,
+    id: String(row.id),
+    title: String(row.title),
+    category: String(row.category),
     keywords,
-    prompt: row.prompt,
-    note: row.note ?? undefined,
+    prompt: String(row.prompt),
+    note: row.note == null ? undefined : String(row.note),
   };
 }
 
-export function fetchPrompts(): Prompt[] {
-  const rows = db
-    .prepare(
-      `SELECT id, title, category, keywords, prompt, note
-         FROM prompts
-     ORDER BY sort_order ASC, id ASC`,
-    )
-    .all() as PromptRow[];
-  return rows.map(rowToPrompt);
+export async function fetchPrompts(): Promise<Prompt[]> {
+  await ensureSchema();
+  const result = await db.execute(
+    `SELECT id, title, category, keywords, prompt, note
+       FROM prompts
+   ORDER BY sort_order ASC, id ASC`,
+  );
+  return result.rows.map(rowToPrompt);
 }
 
-export function createPrompt(input: PromptInput): void {
-  const { maxOrder } = db
-    .prepare("SELECT COALESCE(MAX(sort_order), 0) AS maxOrder FROM prompts")
-    .get() as { maxOrder: number };
+export async function createPrompt(input: PromptInput): Promise<void> {
+  await ensureSchema();
+  const maxResult = await db.execute(
+    "SELECT COALESCE(MAX(sort_order), 0) AS maxOrder FROM prompts",
+  );
+  const maxOrder = Number(maxResult.rows[0]?.maxOrder ?? 0);
 
-  db.prepare(
-    `INSERT INTO prompts (id, title, category, keywords, prompt, note, sort_order)
-     VALUES (@id, @title, @category, @keywords, @prompt, @note, @sortOrder)`,
-  ).run({
-    id: `p-${randomUUID().slice(0, 8)}`,
-    title: input.title.trim(),
-    category: input.category,
-    keywords: JSON.stringify(input.keywords),
-    prompt: input.prompt.trim(),
-    note: input.note.trim() || null,
-    sortOrder: maxOrder + 1,
+  await db.execute({
+    sql: `INSERT INTO prompts (id, title, category, keywords, prompt, note, sort_order)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      `p-${randomUUID().slice(0, 8)}`,
+      input.title.trim(),
+      input.category,
+      JSON.stringify(input.keywords),
+      input.prompt.trim(),
+      input.note.trim() || null,
+      maxOrder + 1,
+    ],
   });
 }
 
-export function updatePrompt(id: string, input: PromptInput): boolean {
-  const result = db
-    .prepare(
-      `UPDATE prompts
-          SET title = @title,
-              category = @category,
-              keywords = @keywords,
-              prompt = @prompt,
-              note = @note,
-              updated_at = datetime('now')
-        WHERE id = @id`,
-    )
-    .run({
+export async function updatePrompt(
+  id: string,
+  input: PromptInput,
+): Promise<boolean> {
+  await ensureSchema();
+  const result = await db.execute({
+    sql: `UPDATE prompts
+             SET title = ?, category = ?, keywords = ?, prompt = ?,
+                 note = ?, updated_at = datetime('now')
+           WHERE id = ?`,
+    args: [
+      input.title.trim(),
+      input.category,
+      JSON.stringify(input.keywords),
+      input.prompt.trim(),
+      input.note.trim() || null,
       id,
-      title: input.title.trim(),
-      category: input.category,
-      keywords: JSON.stringify(input.keywords),
-      prompt: input.prompt.trim(),
-      note: input.note.trim() || null,
-    });
-  return result.changes > 0;
+    ],
+  });
+  return result.rowsAffected > 0;
 }
 
-export function deletePrompt(id: string): boolean {
-  const result = db.prepare("DELETE FROM prompts WHERE id = ?").run(id);
-  return result.changes > 0;
+export async function deletePrompt(id: string): Promise<boolean> {
+  await ensureSchema();
+  const result = await db.execute({
+    sql: "DELETE FROM prompts WHERE id = ?",
+    args: [id],
+  });
+  return result.rowsAffected > 0;
 }
