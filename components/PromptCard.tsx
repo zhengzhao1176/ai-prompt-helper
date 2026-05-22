@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PromptEditDialog from "@/components/PromptEditDialog";
 import type { Prompt } from "@/lib/search";
 
 const CATEGORY_BADGE: Record<string, string> = {
@@ -13,8 +14,15 @@ const CATEGORY_BADGE: Record<string, string> = {
   画质增强: "bg-slate-100 text-slate-600 ring-slate-200",
 };
 
-export default function PromptCard({ prompt }: { prompt: Prompt }) {
+export default function PromptCard({
+  prompt,
+  categories,
+}: {
+  prompt: Prompt;
+  categories: string[];
+}) {
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -53,52 +61,84 @@ export default function PromptCard({ prompt }: { prompt: Prompt }) {
       </p>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-slate-400">{prompt.note ?? ""}</span>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className={
-            copied
-              ? "flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-600 transition"
-              : "flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
-          }
-        >
-          {copied ? (
-            <>
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              已复制
-            </>
-          ) : (
-            <>
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-              </svg>
-              复制
-            </>
-          )}
-        </button>
+        <span className="min-w-0 truncate text-xs text-slate-400">
+          {prompt.note ?? ""}
+        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50"
+          >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+            编辑
+          </button>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={
+              copied
+                ? "flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-600 transition"
+                : "flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-indigo-700"
+            }
+          >
+            {copied ? (
+              <>
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                已复制
+              </>
+            ) : (
+              <>
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                复制
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {editing && (
+        <PromptEditDialog
+          prompt={prompt}
+          categories={categories}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   );
 }

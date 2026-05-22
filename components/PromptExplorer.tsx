@@ -136,7 +136,11 @@ export default function PromptExplorer({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((prompt) => (
-              <PromptCard key={prompt.id} prompt={prompt} />
+              <PromptCard
+                key={prompt.id}
+                prompt={prompt}
+                categories={categories}
+              />
             ))}
           </div>
         )}
