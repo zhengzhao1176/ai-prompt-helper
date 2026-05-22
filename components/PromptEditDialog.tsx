@@ -227,8 +227,8 @@ export default function PromptEditDialog({
           <textarea
             value={promptText}
             onChange={(event) => setPromptText(event.target.value)}
-            rows={3}
-            className={`${inputClass} font-mono`}
+            rows={8}
+            className={`${inputClass} resize-y font-mono leading-relaxed`}
           />
         </label>
 
