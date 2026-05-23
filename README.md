@@ -43,3 +43,11 @@ npm run dev
 | 生产 | Turso 云数据库 | 设置了 `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` |
 
 在 Vercel 项目设置里配置 `TURSO_DATABASE_URL`、`TURSO_AUTH_TOKEN` 两个环境变量即可（参见 `.env.example`）。
+
+---
+
+## 联系我
+
+微信扫码联系作者：
+
+<img src="./wechat-qr.png" alt="WeChat QR" width="240" />
